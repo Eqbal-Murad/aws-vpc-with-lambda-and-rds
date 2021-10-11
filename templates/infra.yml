@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: BPNZ EDI Foundation Infrastructure 
+Description: Foundation Infrastructure 
 
 Parameters:
   paramVpcCIDR:
@@ -25,10 +25,10 @@ Parameters:
   appName:
     Description: Application name for "Name" tag
     Type: String
-    Default: bpNzEdi
+    Default: myApp
 
 Resources:
-  bpNzEdiVPC:
+  myAppVPC:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref paramVpcCIDR
@@ -38,39 +38,39 @@ Resources:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Vpc"] ]
 
-  bpNzEdiInternetGateway:
+  myAppInternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Igw"] ]
 
-  bpNzEdiVPCGatewayAttachment:
+  myAppVPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref bpNzEdiVPC
-      InternetGatewayId: !Ref bpNzEdiInternetGateway
+      VpcId: !Ref myAppVPC
+      InternetGatewayId: !Ref myAppInternetGateway
 
-  bpNzEdiPublicRouteTable:
+  myAppPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PublicRt"] ]
 
-  bpNzEdiPublicRoute:
+  myAppPublicRoute:
     Type: AWS::EC2::Route
-    DependsOn: bpNzEdiVPCGatewayAttachment
+    DependsOn: myAppVPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref bpNzEdiPublicRouteTable
+      RouteTableId: !Ref myAppPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref bpNzEdiInternetGateway
+      GatewayId: !Ref myAppInternetGateway
 
-  bpNzEdiPublicSubnet1:
+  myAppPublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ] 
       CidrBlock: !Ref paramPublicSubnet1CIDR
       MapPublicIpOnLaunch: true 
@@ -78,10 +78,10 @@ Resources:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PublicSubnet1"] ] 
 
-  bpNzEdiPublicSubnet2:
+  myAppPublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ] 
       CidrBlock: !Ref paramPublicSubnet2CIDR
       MapPublicIpOnLaunch: true 
@@ -89,90 +89,90 @@ Resources:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PublicSubnet2"] ] 
 
-  bpNzEdiPublicSubnet1RouteTableAssociation:
+  myAppPublicSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref bpNzEdiPublicRouteTable
-      SubnetId: !Ref bpNzEdiPublicSubnet1
+      RouteTableId: !Ref myAppPublicRouteTable
+      SubnetId: !Ref myAppPublicSubnet1
   
-  bpNzEdiPublicSubnet2RouteTableAssociation:
+  myAppPublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref bpNzEdiPublicRouteTable
-      SubnetId: !Ref bpNzEdiPublicSubnet2
+      RouteTableId: !Ref myAppPublicRouteTable
+      SubnetId: !Ref myAppPublicSubnet2
 
-  bpNzEdiEIPforNatGateway1:
+  myAppEIPforNatGateway1:
     Type: AWS::EC2::EIP
-    DependsOn: bpNzEdiVPCGatewayAttachment
+    DependsOn: myAppVPCGatewayAttachment
     Properties:
       Domain: vpc 
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Eip1"] ] 
 
-  bpNzEdiEIPforNatGateway2:
+  myAppEIPforNatGateway2:
     Type: AWS::EC2::EIP
-    DependsOn: bpNzEdiVPCGatewayAttachment
+    DependsOn: myAppVPCGatewayAttachment
     Properties:
       Domain: vpc 
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Eip2"] ] 
 
-  bpNzEdiNatGateway1:
+  myAppNatGateway1:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt bpNzEdiEIPforNatGateway1.AllocationId
-      SubnetId: !Ref bpNzEdiPublicSubnet1
+      AllocationId: !GetAtt myAppEIPforNatGateway1.AllocationId
+      SubnetId: !Ref myAppPublicSubnet1
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Ngw1"] ] 
 
-  bpNzEdiNatGateway2:
+  myAppNatGateway2:
     Type: AWS::EC2::NatGateway
     Properties:
-      AllocationId: !GetAtt bpNzEdiEIPforNatGateway2.AllocationId
-      SubnetId: !Ref bpNzEdiPublicSubnet2
+      AllocationId: !GetAtt myAppEIPforNatGateway2.AllocationId
+      SubnetId: !Ref myAppPublicSubnet2
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"Ngw2"] ]
 
-  bpNzEdiPrivateRouteTable1:
+  myAppPrivateRouteTable1:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PrivateRt1"] ]
 
-  bpNzEdiPrivateRouteTable2:
+  myAppPrivateRouteTable2:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       Tags:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PrivateRt2"] ]
 
-  bpNzEdiPrivateRouteForAz1:
+  myAppPrivateRouteForAz1:
     Type: AWS::EC2::Route
-    DependsOn: bpNzEdiVPCGatewayAttachment
+    DependsOn: myAppVPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref bpNzEdiPrivateRouteTable1
+      RouteTableId: !Ref myAppPrivateRouteTable1
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref bpNzEdiNatGateway1 
+      NatGatewayId: !Ref myAppNatGateway1 
 
-  bpNzEdiPrivateRouteForAz2:
+  myAppPrivateRouteForAz2:
     Type: AWS::EC2::Route
-    DependsOn: bpNzEdiVPCGatewayAttachment
+    DependsOn: myAppVPCGatewayAttachment
     Properties:
-      RouteTableId: !Ref bpNzEdiPrivateRouteTable2
+      RouteTableId: !Ref myAppPrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref bpNzEdiNatGateway2
+      NatGatewayId: !Ref myAppNatGateway2
 
-  bpNzEdiPrivateSubnet1:
+  myAppPrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       AvailabilityZone: !Select [ 0, !GetAZs '' ] 
       CidrBlock: !Ref paramPrivateSubnet1CIDR
       MapPublicIpOnLaunch: false 
@@ -180,10 +180,10 @@ Resources:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PrivateSubnet1"] ]
 
-  bpNzEdiPrivateSubnet2:
+  myAppPrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       AvailabilityZone: !Select [ 1, !GetAZs  '' ] 
       CidrBlock: !Ref paramPrivateSubnet2CIDR
       MapPublicIpOnLaunch: false 
@@ -191,24 +191,24 @@ Resources:
       - Key: Name
         Value:  !Join [ "-", [ !Ref appName ,"PrivateSubnet2"] ]
 
-  bpNzEdiPrivateSubnet1RouteTableAssociation:
+  myAppPrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref bpNzEdiPrivateRouteTable1
-      SubnetId: !Ref bpNzEdiPrivateSubnet1
+      RouteTableId: !Ref myAppPrivateRouteTable1
+      SubnetId: !Ref myAppPrivateSubnet1
   
-  bpNzEdiPrivateSubnet2RouteTableAssociation:
+  myAppPrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref bpNzEdiPrivateRouteTable2
-      SubnetId: !Ref bpNzEdiPrivateSubnet2
+      RouteTableId: !Ref myAppPrivateRouteTable2
+      SubnetId: !Ref myAppPrivateSubnet2
 
   LambdaServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties: 
-      GroupName: bpNzEdi-lambda-sg
+      GroupName: myApp-lambda-sg
       GroupDescription: Allow postgres connection
-      VpcId: !Ref bpNzEdiVPC
+      VpcId: !Ref myAppVPC
       SecurityGroupIngress:
       - IpProtocol: tcp
         FromPort: '443'
@@ -233,27 +233,27 @@ Resources:
 Outputs:
   outputVPC:
     Description: A reference to the created VPC
-    Value: !Ref bpNzEdiVPC
+    Value: !Ref myAppVPC
     Export:
       Name: !Sub "${AWS::StackName}-VpcId"
   outputPublicSubnets1:
     Description: A reference to the public subnet1
-    Value:  !Ref bpNzEdiPublicSubnet1
+    Value:  !Ref myAppPublicSubnet1
     Export:
       Name: !Sub "${AWS::StackName}-PublicSubnet1"
   outputPublicSubnets2:
     Description: A reference to the public subnet2
-    Value:  !Ref bpNzEdiPublicSubnet2
+    Value:  !Ref myAppPublicSubnet2
     Export:
       Name: !Sub "${AWS::StackName}-PublicSubnet2"
   outputPrivateSubnets1:
     Description: A reference to the private subnet1
-    Value:  !Ref bpNzEdiPrivateSubnet1
+    Value:  !Ref myAppPrivateSubnet1
     Export:
       Name: !Sub "${AWS::StackName}-PrivateSubnet1"
   outputPrivateSubnets2:
     Description: A reference to the private subnet2
-    Value:  !Ref bpNzEdiPrivateSubnet2
+    Value:  !Ref myAppPrivateSubnet2
     Export:
       Name: !Sub "${AWS::StackName}-PrivateSubnet2"
 
