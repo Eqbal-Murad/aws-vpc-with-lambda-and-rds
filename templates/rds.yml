@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: RDS Postgres 
+
+Parameters:
+  appName:
+    Description: Application name for "Name" tag
+    Type: String
+    Default: myApp
+  FoundationStackName:
+      Type: String
+      Default: myApp-foundation-infra
+  EnvironmentType:
+    Description: "Specify the Environment type of the stack."
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+  DBInstanceIdentifier:
+    Type: String
+    Default: myAppRds
+  DBUsername:
+    NoEcho: "true"
+    Description: Username for Postgresql database access
+    Type: String
+    MinLength: "1"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: Must begin with a letter and contain only alphanumeric characters.
+    Default: "postgres"
+  DBPassword:
+    NoEcho: "true"
+    Description: Password Postgresql database access
+    Type: String
+    MinLength: "8"
+    MaxLength: "41"
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: Must contain only alphanumeric characters.
+    Default: "postgres"
+  DBStorageAmount: 
+    Type: Number 
+    Description: Amount of storage to allocate (in GB) 
+    Default: 10 
+  DBStorageType: 
+    Type: String 
+    Description: Type of storage volume to use
+      (standard [magnetic] or gp2) 
+    Default: standard 
+    AllowedValues: 
+      - standard 
+      - gp2
+Mappings:
+  EnvironmentToInstance:
+    dev:
+      InstanceType: db.t3.small
+      IsMultiAz: false
+    prod:
+      InstanceType: db.t3.small
+      IsMultiAz: true
+
+Resources:
+  myAppRdsSecurityGroup: 
+    Type: AWS::EC2::SecurityGroup 
+    Properties: 
+      GroupDescription: Security group for inbound access to myApp Rds
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '5432'
+        ToPort: '5432'
+        CidrIp: !ImportValue 
+                  'Fn::Sub': '${FoundationStackName}-CidrPublicSubnet1'
+      - IpProtocol: tcp
+        FromPort: '5432'
+        ToPort: '5432'
+        CidrIp: !ImportValue 
+                  'Fn::Sub': '${FoundationStackName}-CidrPublicSubnet2'
+      VpcId: !ImportValue
+                'Fn::Sub': '${FoundationStackName}-VpcId'
+      Tags:
+        - Key: Name
+          Value:  !Join [ "-", [ !Ref appName ,"rds", "Sg1"] ]
+
+  myAppDBSubnetGroup: 
+    Type: AWS::RDS::DBSubnetGroup 
+    Properties: 
+      DBSubnetGroupDescription: Subnet group for RDS DB 
+      SubnetIds: 
+        - !ImportValue 
+                'Fn::Sub': '${FoundationStackName}-PrivateSubnet1' 
+        - !ImportValue 
+                'Fn::Sub': '${FoundationStackName}-PrivateSubnet2'
+
+  myAppRdsDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: "50"
+      DBInstanceClass:  !FindInMap [EnvironmentToInstance, !Ref EnvironmentType, InstanceType]
+      DBInstanceIdentifier: !Ref DBInstanceIdentifier
+      DBSubnetGroupName: !Ref myAppDBSubnetGroup 
+      DeletionProtection: false
+      Engine: postgres
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      MultiAZ: !FindInMap [EnvironmentToInstance, !Ref EnvironmentType, IsMultiAz]
+      VPCSecurityGroups: 
+        - !GetAtt myAppRdsSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: !Join ["-", [!Ref DBInstanceIdentifier, !Ref EnvironmentType]]
+
+Outputs:
+  myAppRdsDatabaseEndpoint:
+    Description: "Connection endpoint for the database"
+    Value: !GetAtt myAppRdsDatabase.Endpoint.Address
